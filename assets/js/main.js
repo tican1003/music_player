@@ -14,7 +14,17 @@
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
+const player = $(".player");
+const cd = $(".cd");
+const heading = $("header h2");
+const cdThumb = $(".cd-thumb");
+const audio = $("#audio");
+const playBtn = $(".btn-toggle-play");
+const progress = $("#progress");
+
 const app = {
+  currentIndex: 0,
+  isPlaying: false,
   songs: [
     {
       name: "Ngày Không Có Em",
@@ -96,10 +106,18 @@ const app = {
     });
     $(".playlist").innerHTML = htmls.join("");
   },
+  defineProperties: function () {
+    Object.defineProperty(this, "currentSong", {
+      get: function () {
+        return this.songs[this.currentIndex];
+      },
+    });
+  },
   handleEvents: function () {
-    const cd = $(".cd");
+    const _this = this;
     const cdWidth = cd.offsetWidth;
 
+    // Xử lí phóng to / thu nhỏ CD
     document.onscroll = function () {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const newCdWidth = cdWidth - scrollTop;
@@ -107,9 +125,60 @@ const app = {
       cd.style.width = newCdWidth > 0 ? newCdWidth + "px" : 0;
       cd.style.opacity = newCdWidth / cdWidth;
     };
+
+    // Xử lí khi click nút play
+    playBtn.onclick = function () {
+      if (_this.isPlaying) {
+        audio.pause();
+      } else {
+        audio.play();
+      }
+    };
+
+    // Khi nhạc được phát
+    audio.onplay = function () {
+      _this.isPlaying = true;
+      player.classList.add("playing");
+    };
+
+    // Khi nhạc tạm dừng
+    audio.onpause = function () {
+      _this.isPlaying = false;
+      player.classList.remove("playing");
+    };
+
+    // Khi tiến độ bài hát thay đổi
+    audio.ontimeupdate = function () {
+      if (audio.duration) {
+        const progressPercent = Math.floor(
+          (audio.currentTime / audio.duration) * 100
+        );
+        progress.value = progressPercent;
+      }
+    };
+
+    // Xử lí khi tua nhạc
+    progress.onchange = function (e) {
+      const seekTime = (audio.duration / 100) * e.target.value;
+      audio.currentTime = seekTime;
+    };
+  },
+  loadCurrentSong: function () {
+    heading.textContent = this.currentSong.name;
+    cdThumb.style.backgroundImage = `url("${this.currentSong.img}")`;
+    audio.src = this.currentSong.path;
   },
   start: function () {
+    //Định nghĩa các thuộc tính cho Object
+    this.defineProperties();
+
+    //Lắng nghe / xử lí các sự kiện (DOM events)
     this.handleEvents();
+
+    // Tải thông tin bài hát đầu tiên vào UI khi chạy ứng dụng
+    this.loadCurrentSong();
+
+    // Render playlist
     this.render();
   },
 };

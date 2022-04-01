@@ -21,6 +21,10 @@ const cdThumb = $(".cd-thumb");
 const audio = $("#audio");
 const playBtn = $(".btn-toggle-play");
 const progress = $("#progress");
+const nextBtn = $(".btn-next");
+const prevBtn = $(".btn-prev");
+const randomBtn = $(".btn-random");
+const isRandom = false;
 
 const app = {
   currentIndex: 0,
@@ -117,6 +121,13 @@ const app = {
     const _this = this;
     const cdWidth = cd.offsetWidth;
 
+    // Xử lí CD quay / dừng
+    const cdThumbAnimate = cdThumb.animate([{ transform: "rotate(360deg)" }], {
+      duration: 10000,
+      iterations: Infinity,
+    });
+    cdThumbAnimate.pause();
+
     // Xử lí phóng to / thu nhỏ CD
     document.onscroll = function () {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -139,12 +150,14 @@ const app = {
     audio.onplay = function () {
       _this.isPlaying = true;
       player.classList.add("playing");
+      cdThumbAnimate.play();
     };
 
     // Khi nhạc tạm dừng
     audio.onpause = function () {
       _this.isPlaying = false;
       player.classList.remove("playing");
+      cdThumbAnimate.pause();
     };
 
     // Khi tiến độ bài hát thay đổi
@@ -158,15 +171,72 @@ const app = {
     };
 
     // Xử lí khi tua nhạc
-    progress.onchange = function (e) {
+    progress.oninput = function (e) {
       const seekTime = (audio.duration / 100) * e.target.value;
       audio.currentTime = seekTime;
+    };
+
+    // Khi qua bài mới
+    nextBtn.onclick = function () {
+      if (_this.isRandom) {
+        _this.playRandomSong();
+      } else {
+        _this.nextSong();
+      }
+      audio.play();
+    };
+
+    // Khi trả về bài cũ
+    prevBtn.onclick = function () {
+      if (audio.currentTime > 2) {
+        audio.currentTime = 0;
+      } else {
+        if (_this.isRandom) {
+          _this.playRandomSong();
+        } else {
+          _this.prevSong();
+        }
+        audio.play();
+      }
+    };
+
+    // Khi nhấn nút random
+    randomBtn.onclick = function () {
+      _this.isRandom = !_this.isRandom;
+      randomBtn.classList.toggle("active", _this.isRandom);
+    };
+
+    // Xử lí tiếp tục bài mới khi kết thúc bài cũ
+    audio.onended = function () {
+      nextBtn.click();
     };
   },
   loadCurrentSong: function () {
     heading.textContent = this.currentSong.name;
     cdThumb.style.backgroundImage = `url("${this.currentSong.img}")`;
     audio.src = this.currentSong.path;
+  },
+  nextSong: function () {
+    this.currentIndex++;
+    if (this.currentIndex >= this.songs.length) {
+      this.currentIndex = 0;
+    }
+    this.loadCurrentSong();
+  },
+  prevSong: function () {
+    this.currentIndex--;
+    if (this.currentIndex < 0) {
+      this.currentIndex = this.songs.length - 1;
+    }
+    this.loadCurrentSong();
+  },
+  playRandomSong: function () {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * this.songs.length);
+    } while (newIndex === this.currentIndex);
+    this.currentIndex = newIndex;
+    this.loadCurrentSong();
   },
   start: function () {
     //Định nghĩa các thuộc tính cho Object

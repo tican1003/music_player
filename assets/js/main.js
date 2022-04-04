@@ -24,11 +24,14 @@ const progress = $("#progress");
 const nextBtn = $(".btn-next");
 const prevBtn = $(".btn-prev");
 const randomBtn = $(".btn-random");
-const isRandom = false;
+const repeatBtn = $(".btn-repeat");
+const playlist = $(".playlist");
 
 const app = {
   currentIndex: 0,
   isPlaying: false,
+  isRandom: false,
+  isRepeat: false,
   songs: [
     {
       name: "Ngày Không Có Em",
@@ -92,9 +95,11 @@ const app = {
     },
   ],
   render: function () {
-    const htmls = this.songs.map((song) => {
+    const htmls = this.songs.map((song, index) => {
       return `
-            <div class="song">
+            <div class="song ${
+              index === this.currentIndex ? "active" : ""
+            }" data-index=${index}>
               <div class="thumb"
               style="background-image: url('${song.img}')";">
               </div>
@@ -108,7 +113,7 @@ const app = {
           </div>
           `;
     });
-    $(".playlist").innerHTML = htmls.join("");
+    playlist.innerHTML = htmls.join("");
   },
   defineProperties: function () {
     Object.defineProperty(this, "currentSong", {
@@ -184,6 +189,8 @@ const app = {
         _this.nextSong();
       }
       audio.play();
+      _this.render();
+      _this.scrollToActiveSong();
     };
 
     // Khi trả về bài cũ
@@ -197,6 +204,8 @@ const app = {
           _this.prevSong();
         }
         audio.play();
+        _this.render();
+        _this.scrollToActiveSong();
       }
     };
 
@@ -206,10 +215,45 @@ const app = {
       randomBtn.classList.toggle("active", _this.isRandom);
     };
 
+    // Xử lí lặp lại bài hát
+    repeatBtn.onclick = function (e) {
+      _this.isRepeat = !_this.isRepeat;
+      repeatBtn.classList.toggle("active", _this.isRepeat);
+    };
+
     // Xử lí tiếp tục bài mới khi kết thúc bài cũ
     audio.onended = function () {
-      nextBtn.click();
+      if (_this.isRepeat) audio.play();
+      else nextBtn.click();
     };
+
+    // Lắng nghe hành vi click vào playlist
+    playlist.onclick = function (e) {
+      const songNode = e.target.closest(".song:not(.active)");
+      if (songNode || e.target.closest(".option")) {
+        // Xử lí khi bấm vào bài hát
+        if (songNode) {
+          _this.currentIndex = Number(songNode.dataset.index);
+          _this.loadCurrentSong();
+          audio.play();
+          _this.render();
+        }
+        // Xử lí khi bấm vào nút option
+        if (e.target.closest(".option")) {
+        }
+      }
+    };
+  },
+  scrollToActiveSong: function () {
+    setTimeout(function () {
+      $(".song.active").scrollIntoView(
+        {
+          behavor: "smooth",
+          block: "end",
+        },
+        300
+      );
+    });
   },
   loadCurrentSong: function () {
     heading.textContent = this.currentSong.name;
